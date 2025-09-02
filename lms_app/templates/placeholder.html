@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} · LMS{% endblock %}
+{% block content %}
+  <div class="banner">{{ title }}</div>
+  <section class="card">
+    <div class="card-title">{{ title }}</div>
+    <p class="muted">{{ desc }}</p>
+  </section>
+{% endblock %}

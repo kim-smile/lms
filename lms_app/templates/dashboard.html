@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card-title">과제 진행률</div>
+<div class="stat">{{ progress_pct }}%<span>{{ submitted_cnt }}/{{ total_cnt }} 완료</span></div>
+
+<!-- 평균 성적 -->
+<section class="card">
+  <div class="card-title">평균 성적</div>
+  <div class="stat">{{ avg_score if avg_score is not none else '—' }}<span>전체 과목 평균</span></div>
+</section>
+
+<!-- 최근 강좌(진행 바) -->
+<section class="card">
+  <div class="card-title">최근 강좌</div>
+  {% for b in bars %}
+    <div class="course-row">
+      <div class="title">{{ b.course.title }}</div>
+      <div class="bar"><span style="width: '{{ b.pct }}%';"></span></div>
+      <div class="pct">{{ b.pct }}%</div>
+    </div>
+  {% else %}
+    <div class="muted">수강 중인 강좌가 없습니다.</div>
+  {% endfor %}
+</section>
+
+<div class="grid grid-2">
+  <!-- 다가오는 마감일 -->
+  <section class="card">
+    <div class="card-title">다가오는 마감일</div>
+    <ul class="list">
+      {% for title, course_title, due_at in upcoming %}
+        <li>
+          <div class="list-title">{{ title }}</div>
+          <div class="list-sub">{{ course_title }}</div>
+          <div class="badge danger">{{ due_at.strftime('%m/%d %H:%M') }}</div>
+        </li>
+      {% else %}
+        <li class="muted">다가오는 일정이 없습니다.</li>
+      {% endfor %}
+    </ul>
+    <a class="btn-ghost" href="#">전체 일정 보기</a>
+  </section>
+
+  <!-- 최근 활동 -->
+  <section class="card">
+    <div class="card-title">최근 활동</div>
+    <ul class="activity">
+      {% for ts, text in recent %}
+        <li>
+          <span class="dot"></span>
+          <div>
+            <div>{{ text }}</div>
+            <div class="muted small">{{ ts.strftime('%m/%d %H:%M') }}</div>
+          </div>
+        </li>
+      {% else %}
+        <li class="muted">최근 활동이 없습니다.</li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}
