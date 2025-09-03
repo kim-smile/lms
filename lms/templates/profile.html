@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}프로필{% endblock %}
+{% block header %}프로필{% endblock %}
+
+{% block content %}
+<div class="grid-profile">
+  <!-- 좌측: 프로필 카드 -->
+  <aside class="card">
+    <div class="profile-hero">
+      <div class="avatar">{{ (user.name[:1] if user and user.name) or "?" }}</div>
+      <div class="name">{{ user.name or '이름없음' }}</div>
+      <div class="handle">@{{ user.username or ('user' ~ user.id) }}</div>
+      <div class="role-chip">{{ user.role or 'student' }}</div>
+    </div>
+
+    <div class="kv"><span>📧</span><span>{{ user.email }}</span></div>
+    {% if user.phone %}
+    <div class="kv"><span>📱</span><span>{{ user.phone }}</span></div>
+    {% endif %}
+    <div class="kv"><span>🗓️</span><span>가입일: {{ user.created_at|ymd_kr }}</span></div>
+
+    <div class="stats">
+      <div>수강 중인 강좌 <b>{{ enrolled_cnt }}</b> 개</div>
+      <div>완료한 과제 <b>{{ submitted_cnt }}</b> 개</div>
+      <div>평균 점수 <b>{{ avg_score if avg_score is not none else '-' }}</b></div>
+    </div>
+  </aside>
+
+  <!-- 우측: 상세/편집 -->
+  <section class="card">
+    <div class="tabs">
+      <a class="tab active" data-tab="basic">기본 정보</a>
+      <a class="tab" data-tab="security">보안</a>
+      <a class="tab" data-tab="prefs">환경설정</a>
+      <div class="spacer"></div>
+      <button id="btnEdit" class="btn">편집</button>
+    </div>
+
+    <div class="pad">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, msg in messages %}
+            <div class="flash {{ category }}">{{ msg }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form id="formBasic" method="post" action="{{ url_for('profile_update') }}">
+        <div data-pane="basic">
+          <div class="row"><label>이름</label><input name="name" value="{{ user.name or '' }}" readonly></div>
+          <div class="row"><label>이메일</label><input name="email" type="email" value="{{ user.email or '' }}" readonly></div>
+          <div class="row"><label>전화번호</label><input name="phone" value="{{ user.phone or '' }}" placeholder="010-0000-0000" readonly></div>
+          <div class="row"><label>사용자명(핸들)</label><input name="username" value="{{ user.username or '' }}" placeholder="예: @young" readonly></div>
+
+          <div class="actions">
+            <button type="button" class="btn" id="btnCancel" style="display:none;">취소</button>
+            <button type="submit" class="btn primary" id="btnSave" style="display:none;">저장</button>
+          </div>
+        </div>
+      </form>
+
+      <div data-pane="security" style="display:none;">
+        <p class="meta">비밀번호/2단계 인증은 추후 연결 예정</p>
+      </div>
+      <div data-pane="prefs" style="display:none;">
+        <p class="meta">테마/알림/언어 등 환경설정은 추후 연결 예정</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+  // 탭 전환
+  const tabs = document.querySelectorAll('.tab');
+  const panes = document.querySelectorAll('[data-pane]');
+  tabs.forEach(t => t.addEventListener('click', () => {
+    tabs.forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    panes.forEach(p => p.style.display = (p.dataset.pane === t.dataset.tab) ? 'block' : 'none');
+  }));
+
+  // 편집 토글
+  const btnEdit = document.getElementById('btnEdit');
+  const btnSave = document.getElementById('btnSave');
+  const btnCancel = document.getElementById('btnCancel');
+  const inputs = document.querySelectorAll('#formBasic input');
+  function setEditable(on){
+    inputs.forEach(i => on ? i.removeAttribute('readonly') : i.setAttribute('readonly','readonly'));
+    btnSave.style.display = on ? 'inline-block' : 'none';
+    btnCancel.style.display = on ? 'inline-block' : 'none';
+    btnEdit.textContent = on ? '읽기' : '편집';
+  }
+  btnEdit.addEventListener('click', () => setEditable(btnSave.style.display !== 'inline-block'));
+  btnCancel.addEventListener('click', () => location.reload());
+  setEditable(false);
+</script>
+{% endblock %}

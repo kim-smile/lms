@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="page-title">분석 및 리포트</h2>
+<p class="subtitle">학습 데이터를 분석하고 인사이트를 확인하세요</p>
+
+<!-- KPI 요약 -->
+<div class="grid grid-4 kpi-row">
+  <section class="card kpi">
+    <div class="kpi-value">{{ metrics.student_count }}</div>
+    <div class="kpi-label">총 학생 수</div>
+    <div class="kpi-sub">{{ metrics.student_growth }} 전월 대비</div>
+  </section>
+  <section class="card kpi">
+    <div class="kpi-value">{{ metrics.active_courses }}</div>
+    <div class="kpi-label">활성 강좌</div>
+    <div class="kpi-sub">{{ metrics.new_courses }} 신규 강좌</div>
+  </section>
+  <section class="card kpi">
+    <div class="kpi-value">{{ metrics.avg_progress }}%</div>
+    <div class="kpi-label">평균 진도율</div>
+    <div class="kpi-sub">{{ metrics.progress_growth }} 전월 대비</div>
+  </section>
+  <section class="card kpi">
+    <div class="kpi-value">{{ metrics.completion_rate }}%</div>
+    <div class="kpi-label">완료율</div>
+    <div class="kpi-sub">{{ metrics.completion_growth }} 전월 대비</div>
+  </section>
+</div>
+
+<!-- 차트 -->
+<div class="grid grid-2">
+  <section class="card">
+    <div class="card-title">강좌별 성과</div>
+    <p class="muted small">각 강좌의 학생 수와 완료 학생 수</p>
+    <canvas id="courseChart"></canvas>
+  </section>
+  <section class="card">
+    <div class="card-title">학습 진도 추이</div>
+    <p class="muted small">월별 평균 진도율과 과제 제출 수</p>
+    <canvas id="trendChart"></canvas>
+  </section>
+</div>
+
+<!-- 강좌별 상세 분석 -->
+<section class="card">
+  <div class="card-title">강좌별 상세 분석</div>
+  <p class="muted small">각 강좌의 세부 성과 지표를 확인하세요</p>
+
+  {% for c in course_details %}
+  <div class="row-item">
+    <div class="row-left">
+      <div class="row-title">{{ c.title }}</div>
+      <div class="row-sub muted small">학생: {{ c.students }}명　평균 점수: {{ c.avg_score if c.avg_score is not none else '—' }}점</div>
+    </div>
+    <div class="row-right">
+      <div class="muted small" style="margin-bottom:6px">완료율</div>
+      <div class="progress">
+        <span style="--pct: {{ ((c.completion or 0)|int) }}; width: calc(var(--pct) * 1%);"></span>
+      </div>
+      <div class="pct">{{ c.completion }}%</div>
+    </div>
+  </div>
+  {% else %}
+  <div class="muted">표시할 강좌가 없습니다.</div>
+  {% endfor %}
+</section>
+
+<!-- 위험군 학생 조기 경고 -->
+<section class="card warn">
+  <div class="card-title">⚠️ 위험군 학생 조기 경고</div>
+  <p class="muted small">학습 부진이 우려되는 학생들을 확인하고 지원하세요</p>
+
+  {% for s in risk_students %}
+  <div class="risk-item">
+    <div class="risk-main">
+      <div class="risk-name">{{ s.name }}</div>
+      <div class="risk-email muted small">{{ s.email }}</div>
+      <div class="chips">
+        {% for b in s.badges %}
+        <span class="chip">{{ b }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="risk-metrics muted small">
+      <div>진도: <b>{{ s.progress }}%</b></div>
+      <div>점수: <b>{{ s.avg_score if s.avg_score is not none else '—' }}점</b></div>
+      <div>제출률: <b>{{ s.submission_rate }}%</b></div>
+    </div>
+  </div>
+  {% else %}
+    <div class="muted">위험군 학생이 없습니다.</div>
+  {% endfor %}
+</section>
+
+<!-- 스타일 & 스크립트 -->
+<style>
+  /* 간단 프로그레스바 */
+  .progress { width: 220px; height: 8px; background: #eee; border-radius: 9999px; overflow: hidden; }
+  .progress > span { display: block; height: 100%; width: 0; background: #111; border-radius: inherit; }
+  .row-item { display:flex; align-items:center; justify-content:space-between; padding:18px; border:1px solid #eee; border-radius:12px; margin:10px 0; }
+  .row-left { flex: 1 1 auto; }
+  .row-title { font-weight: 600; margin-bottom: 6px; }
+  .row-right { text-align: right; min-width: 260px; }
+  .row-right .pct { margin-top: 6px; font-weight: 700; }
+  .warn { background: #fff; }
+  .risk-item { display:flex; justify-content:space-between; align-items:flex-start; padding:18px; border:1px solid #ffe6c7; background:#fff9f2; border-radius:12px; margin:10px 0; }
+  .risk-name { font-weight:600; margin-bottom:4px; }
+  .chips { margin-top:8px; }
+  .chip { display:inline-block; padding:4px 10px; font-size:12px; border-radius:9999px; background:#f0f0f0; margin-right:6px; }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // 안전한 직렬화
+  const coursePerf = JSON.parse('{{ course_perf | default([]) | tojson | replace("</","<\\/") | safe }}');
+  const trendData  = JSON.parse('{{ trend       | default([]) | tojson | replace("</","<\\/") | safe }}');
+
+  // 강좌별 성과 차트
+  new Chart(document.getElementById('courseChart'), {
+    type: 'bar',
+    data: {
+      labels: coursePerf.map(d => d.title),
+      datasets: [
+        { label: '수강생 수', data: coursePerf.map(d => d.enrolled), backgroundColor: '#6366f1' },
+        { label: '완료 학생 수', data: coursePerf.map(d => d.completed), backgroundColor: '#10b981' }
+      ]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+  });
+
+  // 진도 추이 차트
+  new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+      labels: trendData.map(d => d.month),
+      datasets: [
+        { label: '평균 진도율(%)', data: trendData.map(d => d.avg_progress), borderColor: '#10b981', fill: false, tension: 0.35 },
+        { label: '과제 제출 수', data: trendData.map(d => d.submissions), borderColor: '#6366f1', fill: false, tension: 0.35 }
+      ]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+  });
+</script>
+{% endblock %}

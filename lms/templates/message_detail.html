@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}메시지 보기{% endblock %}
+{% block header %}메시지 보기{% endblock %}
+{% block content %}
+<div class="grid2">
+  <div class="card">
+    <div class="title">{{ m.title }}</div>
+    <div class="kv">From: <b>{{ m.sender.name }}</b> &nbsp; → &nbsp; To: <b>{{ m.receiver.name }}</b></div>
+    <div class="kv">보낸 시각: {{ m.created_at|dt_kr }} {% if m.read_at %} · 읽은 시각: {{ m.read_at|dt_kr }}{% endif %}</div>
+    <hr>
+    <div style="white-space:pre-wrap; line-height:1.6;">{{ m.body or '내용 없음' }}</div>
+  </div>
+
+  <div class="card">
+    <div class="title">답장</div>
+    <form method="post" action="{{ url_for('messages_reply', msg_id=m.id) }}">
+      <div class="row"><label>제목</label><input name="title" value="Re: {{ m.title }}"></div>
+      <div class="row"><label>내용</label><textarea name="body" rows="6"></textarea></div>
+      <div class="actions"><button class="btn primary">보내기</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

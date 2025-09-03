@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% block title %}{{ course.title }} · LMS{% endblock %}
+
+{% block content %}
+
+<!-- 상단 배너 -->
+<section class="course-hero">
+  <div class="hero-title">{{ course.title }}</div>
+  <div class="hero-sub">HTML, CSS, JavaScript를 활용한 웹 개발 기초를 학습합니다. 실습을 통해 동적인 웹 페이지를 제작하고, 최신 웹 기술 트렌드를 익힙니다.</div>
+  <div class="hero-meta">
+    <span>👩‍🏫 김교수</span>
+    <span>📅 월, 수 14:00-15:30</span>
+    <span>📚 3학점</span>
+  </div>
+</section>
+
+<!-- 탭 -->
+<nav class="tabs">
+  <a class="tab {{ 'active' if tab == 'materials' else '' }}" href="?tab=materials">강의 자료</a>
+  <a class="tab {{ 'active' if tab == 'assignments' else '' }}" href="?tab=assignments">과제</a>
+  <a class="tab {{ 'active' if tab == 'notices' else '' }}" href="?tab=notices">공지사항</a>
+  <a class="tab {{ 'active' if tab == 'discussion' else '' }}" href="?tab=discussion">토론</a>
+</nav>
+
+<!-- 콘텐츠 -->
+<section class="card">
+  {% if tab == 'materials' %}
+    <div class="card-title">강의 자료</div>
+    <p class="muted">주차별 강의 영상과 자료를 확인하세요</p>
+    <ul class="list list-spread">
+      {% for m in materials %}
+      <li>
+        <div class="left">
+          <span class="bullet video"></span>
+          <div>
+            <div class="list-title">
+              {% if m.week %}{{ m.week }}주차:{% endif %} {{ m.title }}
+            </div>
+            <div class="list-sub">
+              {% if m.duration %}재생시간: {{ m.duration }}{% endif %}
+              {% if m.size %}파일크기: {{ m.size }}{% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="right">
+          {% if m.download %}
+            <a class="btn-ghost">다운로드</a>
+          {% else %}
+            <span class="chip">{{ m.status or '대기' }}</span>
+            <a class="btn-ghost">재생</a>
+          {% endif %}
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+
+  {% elif tab == 'assignments' %}
+    <div class="card-title">과제</div>
+    <ul class="list list-spread">
+      {% for a in assignments %}
+      {% set sub = sub_map.get(a.id) %}
+      <li>
+        <div class="left">
+          <span class="bullet task"></span>
+          <div>
+            <div class="list-title">{{ a.title }}</div>
+            <div class="list-sub">
+              마감: {{ a.due_at.strftime('%Y-%m-%d %H:%M') if a.due_at else '미정' }}
+              · 상태:
+              {% if sub and sub.submitted_at %}<b>제출</b>{% else %}미제출{% endif %}
+              {% if sub and sub.score is not none %} · 점수: {{ sub.score }}{% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="right">
+          <a class="btn-primary">과제 보기</a>
+        </div>
+      </li>
+      {% else %}
+      <li class="muted">등록된 과제가 없습니다.</li>
+      {% endfor %}
+    </ul>
+
+  {% elif tab == 'notices' %}
+    <div class="card-title">공지사항</div>
+    <ul class="list list-spread">
+      {% for n in notices %}
+      <li>
+        <div class="left">
+          <span class="bullet notice"></span>
+          <div>
+            <div class="list-title">
+              {% if n.pin %}<span class="pin">📌</span>{% endif %}
+              {{ n.title }}
+            </div>
+            <div class="list-sub">{{ n.date }}</div>
+          </div>
+        </div>
+        <div class="right">
+          <a class="btn-ghost">상세</a>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+
+  {% elif tab == 'discussion' %}
+    <div class="card-title">토론</div>
+    <ul class="list list-spread">
+      {% for d in discussion %}
+      <li>
+        <div class="left">
+          <span class="bullet discuss"></span>
+          <div>
+            <div class="list-title">{{ d.title }}</div>
+            <div class="list-sub">댓글 {{ d.comments }} · {{ d.updated }}</div>
+          </div>
+        </div>
+        <div class="right">
+          <a class="btn-ghost">참여</a>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</section>
+
+{% endblock %}

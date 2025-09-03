@@ -1,0 +1,250 @@
+:root{
+--bg:#f7f8fa; --panel:#fff; --primary:#6C63FF; --text:#1f2937; --muted:#6b7280; --border:#e5e7eb;
+--sb-bg:#FFF9DB; --sb-bg-hover:#FFF4BF; --sb-border:#FFE8A3; --sb-accent:#FFE066;
+--radius:16px; --danger:#ef4444;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0; font-family: "Pretendard","Noto Sans KR",system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color:var(--text); background:var(--bg)}
+
+
+.layout{display:grid; grid-template-columns:260px 1fr; min-height:100%}
+.sidebar{background:var(--sb-bg); border-right:1px solid var(--sb-border); padding:18px}
+.brand{font-weight:800; font-size:20px; letter-spacing:0.5px; margin-bottom:12px}
+.nav-item{display:block; padding:10px 12px; border-radius:10px; color:#3A2F00; text-decoration:none; margin:3px 0}
+.nav-item:hover{background:var(--sb-bg-hover)}
+.nav-item.active{background:var(--sb-accent); font-weight:600}
+
+
+.main{padding:18px 24px}
+.topbar{display:flex; justify-content:space-between; align-items:center; gap:12px}
+.search{flex:1; padding:10px 12px; border-radius:12px; border:1px solid var(--border)}
+.user{font-weight:600;}
+
+
+.banner{margin:14px 0 18px; background:linear-gradient(90deg, #6C63FF, #9D8FFF); color:white; padding:12px 16px; border-radius:14px; font-weight:600}
+
+
+.grid{display:grid; gap:16px}
+.grid-2{grid-template-columns:1fr 1fr}
+@media (max-width: 1100px){ .grid-2{grid-template-columns:1fr} }
+
+
+.card{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:16px}
+.card-title{font-weight:700; margin-bottom:10px}
+.stat{font-size:28px; font-weight:800}
+.stat span{font-size:12px; color:var(--muted); margin-left:6px}
+
+
+.course-row{display:grid; grid-template-columns:1fr 1fr 60px; gap:10px; align-items:center; padding:8px 0}
+.course-row .title{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.bar{height:8px; background:#eef2ff; border-radius:999px; position:relative}
+.bar span{position:absolute; left:0; top:0; bottom:0; width:0; background:#6C63FF; border-radius:999px}
+.pct{text-align:right; font-weight:700}
+
+
+.list{list-style:none; padding:0; margin:0}
+.list li{display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px dashed var(--border)}
+.list-title{font-weight:700}
+.list-sub{color:var(--muted); font-size:12px}
+.badge{margin-left:auto; border-radius:999px; padding:6px 10px; font-size:12px; border:1px solid var(--border)}
+.badge.danger{border-color:#fecaca; background:#fee2e2; color:#991b1b}
+
+
+.btn-ghost{display:inline-block; margin-top:12px; font-size:14px; color:#374151; text-decoration:none; padding:6px 8px; border-radius:8px}
+.btn-ghost:hover{background:#f3f4f6}
+
+
+.activity{list-style:none; padding:0; margin:0}
+.activity li{display:flex; gap:10px; align-items:flex-start; padding:8px 0}
+.dot{width:10px; height:10px; border-radius:50%; background:#6C63FF; margin-top:6px}
+.small{font-size:12px}
+.muted{color:var(--muted)}
+
+.grid-3{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.course-card .card-header{display:flex; justify-content:space-between; font-weight:700; margin-bottom:8px}
+.course-card .meta{font-size:13px; color:var(--muted); margin-bottom:4px}
+.course-card .meta.small{font-size:12px}
+.course-card .bar{height:8px; background:#eef2ff; border-radius:999px; margin:6px 0; position:relative}
+.course-card .bar span{position:absolute; left:0; top:0; bottom:0; background:#6C63FF; border-radius:999px}
+.course-card .pct{text-align:right; font-size:13px; font-weight:600; margin-bottom:8px}
+.course-card .actions{display:flex; justify-content:space-between; align-items:center}
+.btn-primary{background:black; color:white; padding:6px 12px; border-radius:6px; text-decoration:none}
+.btn-primary:hover{background:#333}
+.btn-icon{background:#f9fafb; border:1px solid var(--border); border-radius:6px; padding:6px 8px; cursor:pointer}
+
+/* ---------- Course detail hero ---------- */
+.course-hero{
+  background: linear-gradient(90deg, #6C63FF, #9D8FFF);
+  color:#fff; border-radius:16px; padding:16px 20px; margin-bottom:14px;
+}
+.course-hero .hero-title{font-size:22px; font-weight:800; margin-bottom:6px}
+.course-hero .hero-sub{opacity:.95; margin-bottom:8px}
+.course-hero .hero-meta{display:flex; gap:14px; opacity:.95; font-weight:600}
+
+/* ---------- Tabs ---------- */
+.tabs{display:grid; grid-template-columns:repeat(4,1fr); margin:10px 0 14px; border:1px solid var(--border); border-radius:12px; overflow:hidden}
+.tab{display:block; text-align:center; padding:10px 12px; text-decoration:none; color:var(--text); background:#fff}
+.tab + .tab{border-left:1px solid var(--border)}
+.tab:hover{background:#f8fafc}
+.tab.active{background:#f1f5ff; font-weight:700}
+
+/* ---------- List (spread) ---------- */
+.list{list-style:none; margin:0; padding:0}
+.list-spread li{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px; border:1px solid var(--border); border-radius:12px; margin:10px 0; background:#fff}
+.list-spread .left{display:flex; align-items:flex-start; gap:12px}
+.list-spread .right{display:flex; gap:8px; align-items:center}
+.bullet{display:inline-block; width:10px; height:10px; border-radius:50%; margin-top:8px}
+.bullet.video{background:#0ea5e9}
+.bullet.task{background:#6C63FF}
+.bullet.notice{background:#10b981}
+.bullet.discuss{background:#f59e0b}
+.pin{margin-right:6px}
+.chip{display:inline-block; padding:4px 8px; border:1px solid var(--border); border-radius:999px; font-size:12px}
+
+/* ---------- Buttons ---------- */
+.btn-primary{background:black; color:#fff; padding:8px 14px; border-radius:8px; text-decoration:none}
+.btn-primary:hover{background:#333}
+.btn-ghost{display:inline-block; padding:8px 10px; border-radius:8px; border:1px solid var(--border); text-decoration:none; color:var(--text); background:#fff}
+.btn-ghost:hover{background:#f8fafc}
+
+/* ---------- Grid helper for cards ---------- */
+.grid-3{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+
+/* --- Sidenav look like the screenshot --- */
+.sidenav{display:flex; flex-direction:column; gap:8px}
+.nav-item{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:#1f2937; text-decoration:none; border:1px solid transparent}
+.nav-item .icon{width:22px; text-align:center; font-size:18px}
+.nav-item:hover{background:#f8fafc; border-color:#e5e7eb}
+.nav-item.active{
+  background:#eef2ff;
+  border-color:#c7d2fe;
+  box-shadow: inset 2px 0 0 #6366f1; /* 왼쪽 강조선 느낌 */
+  font-weight:700;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+.subtitle { color:#6b7280; margin-bottom:1rem; }
+
+.grid { display:grid; gap:1rem; }
+.grid-4 { grid-template-columns: repeat(4,1fr); }
+.grid-2 { grid-template-columns: 1fr 1fr; }
+
+.card {
+  background:#fff;
+  border-radius:12px;
+  padding:1rem 1.2rem;
+  box-shadow:0 1px 3px rgba(0,0,0,0.08);
+}
+
+.kpi { text-align:left; }
+.kpi-value { font-size:1.6rem; font-weight:700; }
+.kpi-label { font-size:0.95rem; color:#111; margin-top:2px; }
+.kpi-sub { font-size:0.8rem; color:#16a34a; margin-top:4px; }
+
+.card-title { font-weight:600; margin-bottom:.3rem; }
+.muted { color:#6b7280; }
+.small { font-size:0.8rem; }
+
+/* ---------- 사용자 관리 ---------- */
+/* ---------- 사용자 관리 ---------- */
+/* 헤더/레이아웃 공통은 기존과 동일하다고 가정 */
+.page-title{font-size:1.5rem;font-weight:600;margin:0 0 6px}
+.subtitle{color:#6b7280;margin-bottom:1rem}
+.grid{display:grid;gap:1rem}
+.grid-4{grid-template-columns:repeat(4,1fr)}
+.card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.kpi .kpi-label{font-size:.9rem;color:#6b7280}
+.kpi .kpi-value{font-size:1.6rem;font-weight:700;margin-top:4px}
+
+.toolbar{display:flex;gap:.5rem;margin:12px 0}
+.toolbar .search{flex:1;border:1px solid #e5e7eb;border-radius:10px;padding:.6rem .8rem}
+.select{border:1px solid #e5e7eb;border-radius:10px;padding:.55rem .7rem;background:#fff}
+.btn{border:0;background:#111827;color:#fff;border-radius:10px;padding:.6rem 1rem;cursor:pointer}
+
+.card-title{font-weight:600;margin-bottom:.35rem}
+.muted{color:#6b7280}.small{font-size:.85rem}
+
+.user-row{
+  display:grid; grid-template-columns:48px 1fr auto auto; gap:12px;
+  align-items:center; padding:12px; border:1px solid #eef2f7; border-radius:12px; margin-bottom:10px;
+}
+.avatar{
+  width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:#f1f5f9;color:#111827;font-weight:700;
+}
+.u-name{font-weight:600}
+.handle{color:#6b7280;font-weight:400;margin-left:6px}
+.u-meta{margin-top:4px;display:flex;flex-wrap:wrap;gap:12px;color:#6b7280;font-size:.9rem}
+.meta-item{display:inline-flex;gap:6px;align-items:center}
+
+.u-tags{display:flex;gap:6px;justify-self:end}
+.badge{padding:.25rem .55rem;border-radius:999px;background:#f3f4f6;color:#111827;font-size:.8rem}
+.badge.success{background:#e8f7ef;color:#047857}
+.badge.danger{background:#fee2e2;color:#b91c1c}
+.badge.dark{background:#111827;color:#fff}
+.badge.muted{background:#e5e7eb;color:#6b7280}
+
+.u-actions{display:flex;gap:8px;justify-self:end}
+.icon-btn{
+  border:1px solid #e5e7eb;background:#fff;border-radius:10px;padding:.45rem .6rem;cursor:pointer
+}
+.icon-btn:hover{background:#f8fafc}
+
+/* ---- Profile layout (extends base) ---- */
+.grid-profile{display:grid;grid-template-columns:320px 1fr;gap:16px}
+@media (max-width:1024px){.grid-profile{grid-template-columns:1fr}}
+
+.profile-hero{display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px 16px}
+.profile-hero .avatar{width:96px;height:96px;border-radius:999px;background:#eef2ff;display:grid;place-items:center;font-size:28px;font-weight:800;color:#4f46e5}
+.profile-hero .name{font-weight:700;font-size:18px}
+.profile-hero .handle{font-size:13px;color:var(--muted)}
+.role-chip{font-size:12px;padding:4px 10px;border-radius:999px;background:#f1f5f9;color:#0f172a}
+
+.kv{display:flex;align-items:center;gap:8px;color:#374151;font-size:14px;margin:8px 20px}
+.stats{padding:12px 16px;border-top:1px dashed var(--border);display:grid;gap:6px;color:#374151;font-size:14px}
+
+.tabs{display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:#fff;position:sticky;top:0;z-index:1}
+.tab{padding:8px 12px;border-radius:10px;cursor:pointer;color:#334155}
+.tab.active{background:#eff6ff;color:#1e40af}
+.pad{padding:16px}
+.row{display:grid;grid-template-columns:160px 1fr;gap:16px;align-items:center;margin-bottom:12px}
+.row label{color:#374151}
+.row input, .row textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:#fff}
+.row input[readonly]{background:#f9fafb;color:#6b7280}
+.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
+.btn{padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:#fff;cursor:pointer}
+.btn.primary{background:#111827;color:#fff;border-color:#111827}
+.meta{font-size:13px;color:#6b7280}
+.flash{margin-bottom:12px;padding:10px 12px;border-radius:10px;font-size:14px}
+.flash.success{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46}
+.flash.error{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+
+/* Messages */
+.dot{display:inline-block;width:8px;height:8px;border-radius:999px;background:#ef4444;margin-right:6px;vertical-align:middle}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th,.tbl td{padding:10px 12px;border-top:1px solid var(--border);text-align:left}
+.tbl thead th{background:#fafafa;border-top:none}
+.kv{color:#374151;margin:6px 0}
+
+.tbl{width:100%;border-collapse:collapse}
+.tbl th,.tbl td{padding:10px 12px;border-top:1px solid var(--border);text-align:left}
+.tbl thead th{background:#fafafa;border-top:none}
+.right{text-align:right}
+.chip{display:inline-block;padding:4px 10px;border-radius:999px;background:#f3f4f6;color:#374151;font-size:12px}
+.chip-ok{background:#ecfdf5;color:#065f46}
+
+.badge{display:inline-block;padding:4px 8px;border-radius:8px;background:#f1f5f9}
+.chip{display:inline-block;padding:4px 10px;border-radius:999px;background:#f3f4f6;color:#374151;font-size:12px}
+.chip-ok{background:#ecfdf5;color:#065f46}
+.chip-warn{background:#fff7ed;color:#9a3412}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th,.tbl td{padding:10px 12px;border-top:1px solid var(--border);text-align:left;vertical-align:top}
+.tbl thead th{background:#fafafa;border-top:none}
+
+/* tables & chips already exist; ensure warn chip */
+.chip-warn{background:#fff7ed;color:#9a3412}
