@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}설정 · LMS{% endblock %}
+
+{% block content %}
+<h1 class="page-title">설정</h1>
+<p class="subtitle">언어·테마·시간대와 알림 설정을 관리하세요.</p>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, msg in messages %}
+      <div class="flash {{ category }}">{{ msg }}</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<section class="card" aria-labelledby="settings-title">
+  <h2 class="card-title" id="settings-title">환경설정</h2>
+
+  <form method="post" action="{{ url_for('settings_update') }}" style="display:grid; gap:12px; max-width:560px;">
+    <div class="row">
+      <label for="set-lang">언어</label>
+      <select id="set-lang" name="language">
+        <option value="ko" {{ 'selected' if s.language=='ko' }}>한국어</option>
+        <option value="en" {{ 'selected' if s.language=='en' }}>English</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <label for="set-theme">테마</label>
+      <select id="set-theme" name="theme">
+        <option value="light" {{ 'selected' if s.theme=='light' }}>라이트</option>
+        <option value="dark"  {{ 'selected' if s.theme=='dark'  }}>다크</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <label for="set-tz">시간대</label>
+      <input id="set-tz" name="timezone" value="{{ s.timezone }}">
+    </div>
+
+    <div class="row" style="display:flex; gap:12px;">
+      <label><input type="checkbox" name="email_notifications" {% if s.email_notifications %}checked{% endif %}> 이메일 알림</label>
+      <label><input type="checkbox" name="push_notifications"  {% if s.push_notifications  %}checked{% endif %}> 푸시 알림</label>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" type="submit">저장</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

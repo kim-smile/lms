@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Learning Management System{% endblock %}</title>
+
+  <!-- Global CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+
+  <div class="layout" role="application">
+    <!-- ========== Sidebar ========== -->
+    <aside class="sidebar" aria-label="주요 내비게이션">
+      <div class="brand" aria-label="서비스명">LMS</div>
+
+      <nav class="sidenav" role="navigation">
+        {# Helper: returns 'active' class and sets aria-current for current page #}
+        {% macro nav_item(label, endpoint_or_url, is_active, icon) -%}
+          <a
+            class="nav-item {{ 'active' if is_active else '' }}"
+            href="{{ endpoint_or_url }}"
+            {% if is_active %} aria-current="page" {% endif %}
+          >
+            <span class="icon" aria-hidden="true">{{ icon }}</span>
+            <span class="label">{{ label }}</span>
+          </a>
+        {%- endmacro %}
+
+        {{ nav_item('대시보드',
+                    url_for('dashboard.dashboard'),
+                    active_exact('/'),
+                    '🏠') }}
+
+        {{ nav_item('강좌',
+                    url_for('courses.home'),
+                    active_prefix('/courses') or active_prefix('/course/'),
+                    '📚') }}
+
+        {{ nav_item('멘토링',
+                    url_for('mentoring.home'),
+                    active_exact('/mentoring'),
+                    '🧑‍🏫') }}
+
+        {{ nav_item('사용자 관리',
+                    url_for('users.home'),
+                    active_prefix('/users'),
+                    '👥') }}
+
+        {{ nav_item('분석 및 리포트',
+                    url_for('analytics.home'),
+                    active_prefix('/analytics'),
+                    '📊') }}
+
+        {{ nav_item('메시지',
+                    url_for('messages.home'),
+                    active_prefix('/messages'),
+                    '💬') }}
+
+        {{ nav_item('일정',
+                    url_for('schedule.home'),
+                    active_prefix('/schedule'),
+                    '📅') }}
+
+        {# BUGFIX: 기존 '/assignments_page' → 실제 라우트 '/assignments' #}
+        {{ nav_item('과제',
+                    url_for('assignments.home'),
+                    active_prefix('/assignments'),
+                    '📝') }}
+
+        {{ nav_item('성적',
+                    url_for('grades.home'),
+                    active_prefix('/grades'),
+                    '🏅') }}
+
+        {{ nav_item('프로필',
+                    url_for('profile.home'),
+                    active_prefix('/profile'),
+                    '👤') }}
+
+        {{ nav_item('설정',
+                    url_for('settings.home'),
+                    active_prefix('/settings'),
+                    '⚙️') }}
+      </nav>
+
+          <!-- 사이드바: 빠른 통계 & 최근 활동 -->
+    <section class="sb-widget">
+      <div class="sb-title">빠른 통계</div>
+      <ul class="sb-kpis">
+        <li><span>수강 중인 강좌</span><b>{{ sb_stats.courses }}</b></li>
+        <li><span>완료한 과제</span><b>{{ sb_stats.completed }}</b></li>
+        <li><span>평균 점수</span>
+          <b>
+            {% if sb_stats.avg_score is not none %}
+              {{ ('%.0f' % sb_stats.avg_score) }}%
+            {% else %} — {% endif %}
+          </b>
+        </li>
+      </ul>
+    </section>
+
+    <section class="sb-widget">
+      <div class="sb-title">최근 활동</div>
+      <ul class="sb-recent">
+        {% for ts, text in sb_recent %}
+          <li>
+            <span class="dot"></span>
+            <div class="sr-main">
+              <div class="sr-text">{{ text }}</div>
+              <div class="sr-when muted small">{{ ts|timeago_kr }}</div>
+            </div>
+          </li>
+        {% else %}
+          <li class="muted small">최근 활동이 없습니다.</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    </aside>
+
+    <!-- ========== Main ========== -->
+    <main id="main-content" class="main" tabindex="-1">
+      <header class="topbar" role="banner">
+        <form class="searchbar" role="search" method="get" action="{{ url_for('courses') }}">
+          <label for="global-search" class="sr-only">검색</label>
+          <input
+            id="global-search"
+            class="search"
+            name="q"
+            placeholder="강좌, 사용자, 콘텐츠 검색…"
+            value="{{ request.args.get('q','') }}"
+            autocomplete="off"
+          />
+        </form>
+
+        <div class="user-menu">
+          <button type="button" class="user-btn" aria-haspopup="menu" aria-expanded="false">
+            영이 <span aria-hidden="true">▾</span>
+          </button>
+          <!-- 필요시 드롭다운 메뉴 추가 -->
+        </div>
+      </header>
+
+      <!-- Flash messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-stack" role="status" aria-live="polite">
+            {% for category, message in messages %}
+              <div class="flash flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  {% block body_scripts %}
+  <script>
+    // 최소한의 접근성/편의 스크립트
+    (function () {
+      // 플래시 자동 숨김
+      const flashes = document.querySelectorAll('.flash');
+      if (flashes.length) {
+        setTimeout(() => flashes.forEach(el => el.classList.add('is-hiding')), 2500);
+        setTimeout(() => flashes.forEach(el => el.remove()), 3500);
+      }
+
+      // 유저 메뉴 토글(필요 시 확장)
+      const btn = document.querySelector('.user-btn');
+      if (btn) {
+        btn.addEventListener('click', () => {
+          const expanded = btn.getAttribute('aria-expanded') === 'true';
+          btn.setAttribute('aria-expanded', String(!expanded));
+        });
+      }
+    })();
+  </script>
+  {% endblock %}
+</body>
+</html>

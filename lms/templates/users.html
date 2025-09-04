@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}사용자 관리 · LMS{% endblock %}
+
+{% block content %}
+  <h1 class="page-title">사용자 관리</h1>
+  <p class="subtitle">시스템 사용자를 관리하고 권한을 설정하세요.</p>
+
+  <!-- KPI -->
+  <div class="grid grid-4 kpi-row">
+    <section class="card kpi">
+      <div class="kpi-label">전체 사용자</div>
+      <div class="kpi-value">{{ total_cnt }}</div>
+    </section>
+    <section class="card kpi">
+      <div class="kpi-label">학생</div>
+      <div class="kpi-value">{{ student_cnt }}</div>
+    </section>
+    <section class="card kpi">
+      <div class="kpi-label">교수</div>
+      <div class="kpi-value">{{ instructor_cnt }}</div>
+    </section>
+    <section class="card kpi">
+      <div class="kpi-label">관리자</div>
+      <div class="kpi-value">{{ admin_cnt }}</div>
+    </section>
+  </div>
+
+  <!-- 검색/필터 -->
+  <form class="toolbar" method="get" action="">
+    <label class="sr-only" for="q">검색어</label>
+    <input id="q" class="search" type="text" name="q" placeholder="사용자명, 이름, 이메일로 검색…" value="{{ q }}">
+    <label class="sr-only" for="role">역할</label>
+    <select id="role" name="role" class="select" aria-label="역할 필터">
+      <option value="all"        {{ 'selected' if role == 'all' else '' }}>모든 역할</option>
+      <option value="student"    {{ 'selected' if role == 'student' else '' }}>학생</option>
+      <option value="instructor" {{ 'selected' if role == 'instructor' else '' }}>교수</option>
+      <option value="admin"      {{ 'selected' if role == 'admin' else '' }}>관리자</option>
+    </select>
+    <button class="btn" type="submit" aria-label="검색">검색</button>
+  </form>
+
+  <!-- 사용자 목록 -->
+  <section class="card">
+    <div class="card-title">사용자 목록</div>
+    <p class="muted small">등록된 사용자들의 정보와 상태를 확인하세요.</p>
+
+    {% if users and users|length %}
+      {% for u in users %}
+        <div class="user-row" aria-label="사용자">
+          <div class="avatar" aria-hidden="true">{{ (u.name|default(''))[:1] }}</div>
+
+          <div class="u-main">
+            <div class="u-name">
+              {{ u.name }}
+              <span class="handle">@{{ u.username or ('user' ~ u.id) }}</span>
+            </div>
+            <div class="u-meta">
+              <span class="meta-item" title="이메일">
+                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4h20v16H2z" fill="none" stroke="currentColor"/></svg>
+                {{ u.email }}
+              </span>
+
+              {% if u.phone %}
+                <span class="meta-item" title="전화번호">
+                  <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 3.1 5.18 2 2 0 0 1 5 3h3a2 2 0 0 1 2 1.72c.12.9.33 1.77.62 2.6a2 2 0 0 1-.45 2.11L9 10a16 16 0 0 0 5 5l.57-1.17a2 2 0 0 1 2.11-.45c.83.29 1.7.5 2.6.62A2 2 0 0 1 22 16.92z" fill="none" stroke="currentColor"/></svg>
+                  {{ u.phone }}
+                </span>
+              {% endif %}
+
+              <span class="meta-item" title="가입일">
+                가입: {{ u.created_at.strftime('%Y-%m-%d') if u.created_at else '' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="u-tags">
+            {% set role_label = (u.role or 'student') %}
+            {% if role_label == 'admin' %}
+              <span class="badge danger">관리자</span>
+            {% elif role_label == 'instructor' %}
+              <span class="badge dark">교수</span>
+            {% else %}
+              <span class="badge">학생</span>
+            {% endif %}
+
+            {% if u.is_active is not defined or u.is_active %}
+              <span class="badge success">활성</span>
+            {% else %}
+              <span class="badge muted">비활성</span>
+            {% endif %}
+          </div>
+
+          <div class="u-actions">
+            <button class="icon-btn" type="button" title="편집" aria-label="{{ u.name }} 편집">✏️</button>
+            <button class="icon-btn" type="button" title="삭제" aria-label="{{ u.name }} 삭제">🗑️</button>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="muted">표시할 사용자가 없습니다.</div>
+    {% endif %}
+  </section>
+{% endblock %}
