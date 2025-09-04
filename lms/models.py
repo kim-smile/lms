@@ -1,294 +1,389 @@
-from datetime import datetime, date, timedelta
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func
+# models.py
+from __future__ import annotations
 
-db = SQLAlchemy()
+from datetime import datetime
+from typing import Optional
 
-# -----------------------------------
-# 핵심 테이블
-# -----------------------------------
+from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import func  # (일부 쿼리에서 사용될 수 있어 유지)
+from extensions import db
+
+
+# =============================================================================
+# Core Tables
+# =============================================================================
 class User(db.Model):
-    __tablename__ = 'users'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(190), unique=True, nullable=False)
+    __tablename__ = "users"
+    __table_args__ = (
+        db.Index("ix_users_role", "role"),
+        db.Index("ix_users_is_active", "is_active"),
+        db.UniqueConstraint("email", name="uq_users_email"),
+        db.UniqueConstraint("username", name="uq_users_username"),
+    )
 
-    # 사용자 관리 화면용 필드
-    role = db.Column(db.String(20), nullable=False, default='student')  # student | instructor | admin
-    username = db.Column(db.String(50))
-    phone = db.Column(db.String(30))
-    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    id: int = db.Column(db.Integer, primary_key=True)
+    name: str = db.Column(db.String(100), nullable=False)
+    email: str = db.Column(db.String(190), nullable=False)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # 사용자 관리/권한
+    role: str = db.Column(db.String(20), nullable=False, default="student")  # student|instructor|admin
+    username: Optional[str] = db.Column(db.String(50))
+    phone: Optional[str] = db.Column(db.String(30))
+    is_active: bool = db.Column(db.Boolean, nullable=False, default=True)
 
-    enrollments = db.relationship('Enrollment', back_populates='user')
-    submissions = db.relationship('Submission', back_populates='user')
+    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    # 로그인 컬럼
+    password_hash: Optional[str] = db.Column(db.String(255))     # 권장: 해시 보관
+    password: Optional[str] = db.Column(db.String(128))          # 레거시/데모용: 평문(운영 비권장)
+
+    # 관계
+    enrollments = db.relationship("Enrollment", back_populates="user", cascade="all,delete-orphan")
+    submissions = db.relationship("Submission", back_populates="user", cascade="all,delete")
+
+    # helpers
+    def set_password(self, raw: str) -> None:
+        self.password_hash = generate_password_hash(raw)
+
+    def check_password(self, raw: str) -> bool:
+        # 해시 우선, 없으면 레거시 평문 비교
+        if self.password_hash:
+            return check_password_hash(self.password_hash, raw)
+        if self.password:
+            return self.password == raw
+        return False
+
+    def __repr__(self) -> str:
+        return f"<User id={self.id} name={self.name!r} email={self.email!r}>"
 
 
 class Course(db.Model):
-    __tablename__ = 'courses'
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
-    start_date = db.Column(db.Date)
-    end_date = db.Column(db.Date)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    __tablename__ = "courses"
+    __table_args__ = (
+        db.Index("ix_courses_start_date", "start_date"),
+        db.Index("ix_courses_end_date", "end_date"),
+    )
 
-    enrollments = db.relationship('Enrollment', back_populates='course')
-    assignments = db.relationship('Assignment', back_populates='course')
+    id: int = db.Column(db.Integer, primary_key=True)
+    title: str = db.Column(db.String(200), nullable=False)
+    start_date: Optional[datetime] = db.Column(db.Date)
+    end_date: Optional[datetime] = db.Column(db.Date)
+    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    enrollments = db.relationship("Enrollment", back_populates="course", cascade="all,delete-orphan")
+    assignments = db.relationship("Assignment", back_populates="course", cascade="all,delete-orphan")
+
+    def __repr__(self) -> str:
+        return f"<Course id={self.id} title={self.title!r}>"
 
 
 class Enrollment(db.Model):
-    __tablename__ = 'enrollments'
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    __tablename__ = "enrollments"
+    __table_args__ = (
+        db.Index("ix_enrollments_user", "user_id"),
+        db.Index("ix_enrollments_course", "course_id"),
+    )
 
-    user = db.relationship('User', back_populates='enrollments')
-    course = db.relationship('Course', back_populates='enrollments')
+    id: int = db.Column(db.Integer, primary_key=True)
+    user_id: int = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    course_id: int = db.Column(db.Integer, db.ForeignKey("courses.id"), nullable=False)
+    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    user = db.relationship("User", back_populates="enrollments")
+    course = db.relationship("Course", back_populates="enrollments")
+
+    def __repr__(self) -> str:
+        return f"<Enrollment id={self.id} user_id={self.user_id} course_id={self.course_id}>"
 
 
 class Assignment(db.Model):
-    __tablename__ = 'assignments'
-    id = db.Column(db.Integer, primary_key=True)
-    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
-    title = db.Column(db.String(200), nullable=False)
-    due_at = db.Column(db.DateTime, nullable=True)
-    total_score = db.Column(db.Integer, default=100)
+    __tablename__ = "assignments"
+    __table_args__ = (
+        db.Index("ix_assignments_course", "course_id"),
+        db.Index("ix_assignments_due", "due_at"),
+    )
 
-    course = db.relationship('Course', back_populates='assignments')
-    submissions = db.relationship('Submission', back_populates='assignment')
+    id: int = db.Column(db.Integer, primary_key=True)
+    course_id: int = db.Column(db.Integer, db.ForeignKey("courses.id"), nullable=False)
+    title: str = db.Column(db.String(200), nullable=False)
+    due_at: Optional[datetime] = db.Column(db.DateTime)
+    total_score: int = db.Column(db.Integer, nullable=False, default=100)
+
+    course = db.relationship("Course", back_populates="assignments")
+    submissions = db.relationship("Submission", back_populates="assignment", cascade="all,delete-orphan")
+
+    def __repr__(self) -> str:
+        return f"<Assignment id={self.id} course_id={self.course_id} title={self.title!r}>"
 
 
 class Submission(db.Model):
-    __tablename__ = 'submissions'
-    id = db.Column(db.Integer, primary_key=True)
-    assignment_id = db.Column(db.Integer, db.ForeignKey('assignments.id'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
-    score = db.Column(db.Integer, nullable=True)
+    __tablename__ = "submissions"
+    __table_args__ = (
+        db.Index("ix_submissions_user", "user_id"),
+        db.Index("ix_submissions_assignment", "assignment_id"),
+        db.Index("ix_submissions_submitted_at", "submitted_at"),
+        db.UniqueConstraint("user_id", "assignment_id", name="uq_sub_user_assignment"),
+    )
 
-    # ▼ 추가
-    file_url = db.Column(db.String(255))
-    comment = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime)
-    graded_at = db.Column(db.DateTime)
+    id: int = db.Column(db.Integer, primary_key=True)
+    assignment_id: int = db.Column(db.Integer, db.ForeignKey("assignments.id"), nullable=False)
+    user_id: int = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    submitted_at: Optional[datetime] = db.Column(db.DateTime)  # 제출 시점에 설정
+    score: Optional[int] = db.Column(db.Integer)
 
-    assignment = db.relationship('Assignment', back_populates='submissions')
-    user = db.relationship('User', back_populates='submissions')
+    # 첨부/메타
+    file_url: Optional[str] = db.Column(db.String(255))
+    comment: Optional[str] = db.Column(db.Text)
+    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Optional[datetime] = db.Column(db.DateTime, onupdate=datetime.utcnow)
+    graded_at: Optional[datetime] = db.Column(db.DateTime)
+
+    assignment = db.relationship("Assignment", back_populates="submissions")
+    user = db.relationship("User", back_populates="submissions")
 
     @property
-    def is_late(self):
+    def is_late(self) -> bool:
         if not self.submitted_at or not self.assignment or not self.assignment.due_at:
             return False
         return self.submitted_at > self.assignment.due_at
 
-# -----------------------------
-# 대시보드 유틸
-# -----------------------------
-def assignment_progress_for_user(user_id: int):
-    total = db.session.scalar(
-        db.select(func.count(Assignment.id))
-        .join(Course, Course.id == Assignment.course_id)
-        .join(Enrollment, Enrollment.course_id == Course.id)
-        .where(Enrollment.user_id == user_id)
-    ) or 0
-
-    submitted = db.session.scalar(
-        db.select(func.count(func.distinct(Submission.assignment_id)))
-        .where(Submission.user_id == user_id, Submission.submitted_at.isnot(None))
-    ) or 0
-
-    pct = int((submitted / total) * 100) if total else 0
-    return pct, submitted, total
+    def __repr__(self) -> str:
+        return f"<Submission id={self.id} assignment_id={self.assignment_id} user_id={self.user_id}>"
 
 
-def average_score_for_user(user_id: int):
-    avg = db.session.scalar(
-        db.select(func.avg(Submission.score))
-        .where(Submission.user_id == user_id, Submission.score.isnot(None))
-    )
-    return round(float(avg), 1) if avg is not None else None
-
-
-def recent_activities_for_user(user_id: int, limit: int = 5):
-    sub_rows = (
-        db.session.query(Submission.submitted_at, Assignment.title)
-        .join(Assignment, Assignment.id == Submission.assignment_id)
-        .filter(Submission.user_id == user_id, Submission.submitted_at.isnot(None))
-        .all()
-    )
-    sub_acts = [(ts, f"과제 제출 · {title}") for ts, title in sub_rows]
-
-    enr_rows = (
-        db.session.query(Enrollment.created_at, Course.title)
-        .join(Course, Course.id == Enrollment.course_id)
-        .filter(Enrollment.user_id == user_id)
-        .all()
-    )
-    enr_acts = [(ts, f"강의 시작 · {title}") for ts, title in enr_rows]
-
-    merged = sub_acts + enr_acts
-    merged.sort(key=lambda x: (x[0] or datetime.min), reverse=True)
-    return merged[:limit]
-
-
-def upcoming_items_for_user(user_id: int, within_days: int = 14):
-    now = datetime.utcnow()
-    until = now + timedelta(days=within_days)
-    rows = (
-        db.session.query(Assignment.title, Course.title, Assignment.due_at)
-        .join(Course, Course.id == Assignment.course_id)
-        .join(Enrollment, Enrollment.course_id == Course.id)
-        .filter(
-            Enrollment.user_id == user_id,
-            Assignment.due_at.isnot(None),
-            Assignment.due_at >= now,
-            Assignment.due_at <= until,
-        )
-        .order_by(Assignment.due_at.asc())
-        .all()
-    )
-    return rows
-
-# ========== Mentoring / Projects / Competitions ==========
+# =============================================================================
+# Mentoring / Projects / Competitions
+# =============================================================================
 class MentoringTeam(db.Model):
-    __tablename__ = 'mentoring_teams'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120), nullable=False)
-    owner_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # 팀장
-    is_solo = db.Column(db.Boolean, nullable=False, default=False)  # 개인 단독 참여 팀 플래그
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    __tablename__ = "mentoring_teams"
+    __table_args__ = (db.Index("ix_mentoring_teams_owner", "owner_user_id"),)
 
-    owner = db.relationship('User', foreign_keys=[owner_user_id])
-    members = db.relationship('MentoringTeamMember', back_populates='team', cascade="all,delete")
+    id: int = db.Column(db.Integer, primary_key=True)
+    name: str = db.Column(db.String(120), nullable=False)
+    owner_user_id: int = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)  # 팀장
+    is_solo: bool = db.Column(db.Boolean, nullable=False, default=False)
+    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    owner = db.relationship("User", foreign_keys=[owner_user_id])
+    members = db.relationship("MentoringTeamMember", back_populates="team", cascade="all,delete-orphan")
+
+    def __repr__(self) -> str:
+        return f"<MentoringTeam id={self.id} name={self.name!r}>"
+
 
 class MentoringTeamMember(db.Model):
-    __tablename__ = 'mentoring_team_members'
-    id = db.Column(db.Integer, primary_key=True)
-    team_id = db.Column(db.Integer, db.ForeignKey('mentoring_teams.id'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    role = db.Column(db.String(40), default='member')  # member|leader|mentor
-    joined_at = db.Column(db.DateTime, default=datetime.utcnow)
+    __tablename__ = "mentoring_team_members"
+    __table_args__ = (
+        db.Index("ix_mtm_team", "team_id"),
+        db.Index("ix_mtm_user", "user_id"),
+    )
 
-    team = db.relationship('MentoringTeam', back_populates='members')
-    user = db.relationship('User')
+    id: int = db.Column(db.Integer, primary_key=True)
+    team_id: int = db.Column(db.Integer, db.ForeignKey("mentoring_teams.id"), nullable=False)
+    user_id: int = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    role: str = db.Column(db.String(40), default="member")  # member|leader|mentor
+    joined_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    team = db.relationship("MentoringTeam", back_populates="members")
+    user = db.relationship("User")
+
+    def __repr__(self) -> str:
+        return f"<MentoringTeamMember id={self.id} team_id={self.team_id} user_id={self.user_id} role={self.role}>"
+
 
 class MentoringReport(db.Model):
-    __tablename__ = 'mentoring_reports'
-    id = db.Column(db.Integer, primary_key=True)
-    author_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    team_id = db.Column(db.Integer, db.ForeignKey('mentoring_teams.id'))  # 팀 없으면 NULL(개인)
-    title = db.Column(db.String(200), nullable=False)
-    content = db.Column(db.Text)              # 텍스트 보고서
-    file_url = db.Column(db.String(255))      # 업로드 파일 경로(간단히 URL 문자열)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    __tablename__ = "mentoring_reports"
+    __table_args__ = (
+        db.Index("ix_mreports_author", "author_user_id"),
+        db.Index("ix_mreports_team", "team_id"),
+    )
 
-    author = db.relationship('User')
-    team = db.relationship('MentoringTeam')
+    id: int = db.Column(db.Integer, primary_key=True)
+    author_user_id: int = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    team_id: Optional[int] = db.Column(db.Integer, db.ForeignKey("mentoring_teams.id"))
+    title: str = db.Column(db.String(200), nullable=False)
+    content: Optional[str] = db.Column(db.Text)
+    file_url: Optional[str] = db.Column(db.String(255))
+    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    author = db.relationship("User")
+    team = db.relationship("MentoringTeam")
+
+    def __repr__(self) -> str:
+        return f"<MentoringReport id={self.id} title={self.title!r}>"
+
 
 class Project(db.Model):
-    __tablename__ = 'projects'
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text)
-    team_id = db.Column(db.Integer, db.ForeignKey('mentoring_teams.id'))  # 팀/개인 모두 가능
-    owner_user_id = db.Column(db.Integer, db.ForeignKey('users.id'))      # 개인 프로젝트면 소유자
-    mentor_user_id = db.Column(db.Integer, db.ForeignKey('users.id'))     # 멘토 지정(선택)
-    status = db.Column(db.String(30), default='ongoing')                  # ongoing|done|paused
-    github_repo_url = db.Column(db.String(255))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    __tablename__ = "projects"
+    __table_args__ = (
+        db.Index("ix_projects_team", "team_id"),
+        db.Index("ix_projects_owner", "owner_user_id"),
+        db.Index("ix_projects_status", "status"),
+    )
 
-    team = db.relationship('MentoringTeam')
-    owner = db.relationship('User', foreign_keys=[owner_user_id])
-    mentor = db.relationship('User', foreign_keys=[mentor_user_id])
-    tasks = db.relationship('ProjectTask', back_populates='project', cascade="all,delete")
+    id: int = db.Column(db.Integer, primary_key=True)
+    title: str = db.Column(db.String(200), nullable=False)
+    description: Optional[str] = db.Column(db.Text)
+    team_id: Optional[int] = db.Column(db.Integer, db.ForeignKey("mentoring_teams.id"))
+    owner_user_id: Optional[int] = db.Column(db.Integer, db.ForeignKey("users.id"))
+    mentor_user_id: Optional[int] = db.Column(db.Integer, db.ForeignKey("users.id"))
+    status: str = db.Column(db.String(30), default="ongoing")  # ongoing|done|paused
+    github_repo_url: Optional[str] = db.Column(db.String(255))
+    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    team = db.relationship("MentoringTeam")
+    owner = db.relationship("User", foreign_keys=[owner_user_id])
+    mentor = db.relationship("User", foreign_keys=[mentor_user_id])
+    tasks = db.relationship("ProjectTask", back_populates="project", cascade="all,delete-orphan")
+
+    def __repr__(self) -> str:
+        return f"<Project id={self.id} title={self.title!r} status={self.status}>"
+
 
 class ProjectTask(db.Model):
-    __tablename__ = 'project_tasks'
-    id = db.Column(db.Integer, primary_key=True)
-    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
-    title = db.Column(db.String(200), nullable=False)
-    due_at = db.Column(db.DateTime)
-    assignee_user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    status = db.Column(db.String(20), default='todo')  # todo|doing|done
+    __tablename__ = "project_tasks"
+    __table_args__ = (
+        db.Index("ix_ptasks_project", "project_id"),
+        db.Index("ix_ptasks_assignee", "assignee_user_id"),
+        db.Index("ix_ptasks_due", "due_at"),
+        db.Index("ix_ptasks_status", "status"),
+    )
 
-    project = db.relationship('Project', back_populates='tasks')
-    assignee = db.relationship('User')
+    id: int = db.Column(db.Integer, primary_key=True)
+    project_id: int = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=False)
+    title: str = db.Column(db.String(200), nullable=False)
+    due_at: Optional[datetime] = db.Column(db.DateTime)
+    assignee_user_id: Optional[int] = db.Column(db.Integer, db.ForeignKey("users.id"))
+    status: str = db.Column(db.String(20), default="todo")  # todo|doing|done
+
+    project = db.relationship("Project", back_populates="tasks")
+    assignee = db.relationship("User")
+
+    def __repr__(self) -> str:
+        return f"<ProjectTask id={self.id} project_id={self.project_id} title={self.title!r}>"
+
 
 class Competition(db.Model):
-    __tablename__ = 'competitions'
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
-    host = db.Column(db.String(120))
-    url = db.Column(db.String(255))
-    apply_deadline = db.Column(db.DateTime)
-    start_at = db.Column(db.DateTime)
-    end_at = db.Column(db.DateTime)
+    __tablename__ = "competitions"
+    __table_args__ = (
+        db.Index("ix_competitions_deadline", "apply_deadline"),
+        db.Index("ix_competitions_start", "start_at"),
+        db.Index("ix_competitions_end", "end_at"),
+    )
+
+    id: int = db.Column(db.Integer, primary_key=True)
+    title: str = db.Column(db.String(200), nullable=False)
+    host: Optional[str] = db.Column(db.String(120))
+    url: Optional[str] = db.Column(db.String(255))
+    apply_deadline: Optional[datetime] = db.Column(db.DateTime)
+    start_at: Optional[datetime] = db.Column(db.DateTime)
+    end_at: Optional[datetime] = db.Column(db.DateTime)
+
+    def __repr__(self) -> str:
+        return f"<Competition id={self.id} title={self.title!r}>"
+
 
 class CompetitionEntry(db.Model):
-    __tablename__ = 'competition_entries'
-    id = db.Column(db.Integer, primary_key=True)
-    competition_id = db.Column(db.Integer, db.ForeignKey('competitions.id'), nullable=False)
-    team_id = db.Column(db.Integer, db.ForeignKey('mentoring_teams.id'))   # 팀 없으면 NULL
-    applicant_user_id = db.Column(db.Integer, db.ForeignKey('users.id'))   # 개인 신청자
-    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'))
-    status = db.Column(db.String(20), default='draft')  # draft|submitted|accepted|rejected
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    __tablename__ = "competition_entries"
+    __table_args__ = (
+        db.Index("ix_centries_competition", "competition_id"),
+        db.Index("ix_centries_team", "team_id"),
+        db.Index("ix_centries_applicant", "applicant_user_id"),
+        db.Index("ix_centries_project", "project_id"),
+        db.Index("ix_centries_status", "status"),
+    )
 
-    competition = db.relationship('Competition')
-    team = db.relationship('MentoringTeam')
-    applicant = db.relationship('User')
-    project = db.relationship('Project')
+    id: int = db.Column(db.Integer, primary_key=True)
+    competition_id: int = db.Column(db.Integer, db.ForeignKey("competitions.id"), nullable=False)
+    team_id: Optional[int] = db.Column(db.Integer, db.ForeignKey("mentoring_teams.id"))
+    applicant_user_id: Optional[int] = db.Column(db.Integer, db.ForeignKey("users.id"))
+    project_id: Optional[int] = db.Column(db.Integer, db.ForeignKey("projects.id"))
+    status: str = db.Column(db.String(20), default="draft")  # draft|submitted|accepted|rejected
+    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
-    # ----- 메시지 모델 -----
+    competition = db.relationship("Competition")
+    team = db.relationship("MentoringTeam")
+    applicant = db.relationship("User")
+    project = db.relationship("Project")
+
+    def __repr__(self) -> str:
+        return f"<CompetitionEntry id={self.id} competition_id={self.competition_id} status={self.status}>"
+
+
+# =============================================================================
+# Messaging / Calendar / Settings
+# =============================================================================
 class Message(db.Model):
-    __tablename__ = 'messages'
-    id = db.Column(db.Integer, primary_key=True)
-    sender_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    receiver_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    title = db.Column(db.String(200), nullable=False)
-    body = db.Column(db.Text)
-    read_at = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    __tablename__ = "messages"
+    __table_args__ = (
+        db.Index("ix_messages_sender", "sender_id"),
+        db.Index("ix_messages_receiver", "receiver_id"),
+        db.Index("ix_messages_read_at", "read_at"),
+        db.Index("ix_messages_created_at", "created_at"),
+    )
 
-    sender = db.relationship('User', foreign_keys=[sender_id])
-    receiver = db.relationship('User', foreign_keys=[receiver_id])
+    id: int = db.Column(db.Integer, primary_key=True)
+    sender_id: int = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    receiver_id: int = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    title: str = db.Column(db.String(200), nullable=False)
+    body: Optional[str] = db.Column(db.Text)
+    read_at: Optional[datetime] = db.Column(db.DateTime)
+    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    sender = db.relationship("User", foreign_keys=[sender_id])
+    receiver = db.relationship("User", foreign_keys=[receiver_id])
 
     @property
-    def is_read(self):
+    def is_read(self) -> bool:
         return self.read_at is not None
-    
-    # ----- 캘린더 일정 -----
+
+    def __repr__(self) -> str:
+        return f"<Message id={self.id} sender={self.sender_id} receiver={self.receiver_id}>"
+
+
 class CalendarEvent(db.Model):
-    __tablename__ = 'calendar_events'
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))    # NULL = 공개/공용
-    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'))
-    title = db.Column(db.String(200), nullable=False)
-    start_at = db.Column(db.DateTime, nullable=False)
-    end_at = db.Column(db.DateTime)
-    location = db.Column(db.String(200))
-    kind = db.Column(db.String(20), default='event')              # event|mentoring|exam|meeting...
-    description = db.Column(db.Text)
-    source = db.Column(db.String(20), default='manual')           # manual|system
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    __tablename__ = "calendar_events"
+    __table_args__ = (
+        db.Index("ix_cevents_user", "user_id"),
+        db.Index("ix_cevents_course", "course_id"),
+        db.Index("ix_cevents_start", "start_at"),
+        db.Index("ix_cevents_kind", "kind"),
+    )
 
-    user = db.relationship('User')
-    course = db.relationship('Course')
+    id: int = db.Column(db.Integer, primary_key=True)
+    user_id: Optional[int] = db.Column(db.Integer, db.ForeignKey("users.id"))  # NULL = 공용
+    course_id: Optional[int] = db.Column(db.Integer, db.ForeignKey("courses.id"))
+    title: str = db.Column(db.String(200), nullable=False)
+    start_at: datetime = db.Column(db.DateTime, nullable=False)
+    end_at: Optional[datetime] = db.Column(db.DateTime)
+    location: Optional[str] = db.Column(db.String(200))
+    kind: str = db.Column(db.String(20), default="event")  # event|mentoring|exam|meeting...
+    description: Optional[str] = db.Column(db.Text)
+    source: str = db.Column(db.String(20), default="manual")  # manual|system
+    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
-    # ----- 사용자 환경설정 -----
+    user = db.relationship("User")
+    course = db.relationship("Course")
+
+    def __repr__(self) -> str:
+        return f"<CalendarEvent id={self.id} title={self.title!r} start_at={self.start_at}>"
+
+
 class UserSetting(db.Model):
-    __tablename__ = 'user_settings'
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
-    language = db.Column(db.String(10), default='ko')
-    theme = db.Column(db.String(10), default='light')  # light|dark
-    timezone = db.Column(db.String(50), default='Asia/Seoul')
-    email_notifications = db.Column(db.Boolean, default=True, nullable=False)
-    push_notifications = db.Column(db.Boolean, default=False, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime)
+    __tablename__ = "user_settings"
+    __table_args__ = (db.Index("ix_usersettings_user", "user_id"),)
 
-    user = db.relationship('User')
+    id: int = db.Column(db.Integer, primary_key=True)
+    user_id: int = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, unique=True)
+    language: str = db.Column(db.String(10), default="ko")
+    theme: str = db.Column(db.String(10), default="light")  # light|dark
+    timezone: str = db.Column(db.String(50), default="Asia/Seoul")
+    email_notifications: bool = db.Column(db.Boolean, default=True, nullable=False)
+    push_notifications: bool = db.Column(db.Boolean, default=False, nullable=False)
+    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Optional[datetime] = db.Column(db.DateTime, onupdate=datetime.utcnow)
+
+    user = db.relationship("User")
+
+    def __repr__(self) -> str:
+        return f"<UserSetting id={self.id} user_id={self.user_id} theme={self.theme}>"

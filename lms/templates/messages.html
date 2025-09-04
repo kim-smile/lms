@@ -1,19 +1,29 @@
 {% extends "base.html" %}
-{% block title %}메시지{% endblock %}
-{% block header %}메시지{% endblock %}
+{% block title %}메시지 · LMS{% endblock %}
 {% block content %}
 
-<div class="tabs">
-  <a class="tab {{ 'active' if tab=='inbox' }}" href="{{ url_for('messages_page', tab='inbox', q=q) }}">받은편지함 <span class="chip {{ 'chip-ok' if unread_cnt else '' }}">{{ unread_cnt }}</span></a>
-  <a class="tab {{ 'active' if tab=='sent' }}"  href="{{ url_for('messages_page', tab='sent',  q=q) }}">보낸편지함</a>
-  <a class="tab {{ 'active' if tab=='compose' }}" href="{{ url_for('messages_page', tab='compose') }}">새 메시지</a>
+<h1 class="page-title">메시지</h1>
+<p class="subtitle">받은편지함, 보낸편지함, 새 메시지를 관리하세요.</p>
+
+<nav class="tabs" role="tablist" aria-label="메시지 탭">
+  <a class="tab {{ 'active' if tab == 'inbox' }}" role="tab"
+     href="{{ url_for('messages_page', tab='inbox', q=q) }}">
+    받은편지함
+    <span class="chip {{ 'chip-ok' if unread_cnt else '' }}" aria-label="안읽은 메시지 수">{{ unread_cnt }}</span>
+  </a>
+  <a class="tab {{ 'active' if tab == 'sent' }}" role="tab"
+     href="{{ url_for('messages_page', tab='sent', q=q) }}">보낸편지함</a>
+  <a class="tab {{ 'active' if tab == 'compose' }}" role="tab"
+     href="{{ url_for('messages_page', tab='compose') }}">새 메시지</a>
+
   <div style="flex:1"></div>
-  <form method="get" action="{{ url_for('messages_page') }}" style="display:flex; gap:8px; align-items:center;">
+
+  <form method="get" action="{{ url_for('messages_page') }}" class="toolbar" aria-label="메시지 검색">
     <input type="hidden" name="tab" value="{{ tab }}">
-    <input name="q" value="{{ q }}" placeholder="제목/내용/이름 검색" style="padding:6px 10px; border:1px solid var(--border); border-radius:8px;">
-    <button class="btn">검색</button>
+    <input class="search" name="q" value="{{ q }}" placeholder="제목/내용/이름 검색">
+    <button class="btn" type="submit">검색</button>
   </form>
-</div>
+</nav>
 
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
@@ -24,64 +34,102 @@
 {% endwith %}
 
 {% if tab == 'compose' %}
-  <div class="card">
-    <div class="title">새 메시지</div>
+  <!-- 새 메시지 -->
+  <section class="card" aria-labelledby="compose-title">
+    <div class="card-title" id="compose-title">새 메시지</div>
     <form method="post" action="{{ url_for('messages_send') }}">
-      <div class="row"><label>받는 사람</label>
-        <select name="to_id" required>
-          {% for u in users %}<option value="{{ u.id }}">{{ u.name }} ({{ u.email }})</option>{% endfor %}
+      <div class="row">
+        <label for="to_id">받는 사람</label>
+        <select id="to_id" name="to_id" required>
+          {% for u in users %}
+            <option value="{{ u.id }}">{{ u.name }} ({{ u.email }})</option>
+          {% endfor %}
         </select>
       </div>
-      <div class="row"><label>제목</label><input name="title" required></div>
-      <div class="row"><label>내용</label><textarea name="body" rows="6" placeholder="내용을 입력하세요"></textarea></div>
-      <div class="actions"><button class="btn primary">보내기</button></div>
+      <div class="row">
+        <label for="title">제목</label>
+        <input id="title" name="title" required>
+      </div>
+      <div class="row">
+        <label for="body">내용</label>
+        <textarea id="body" name="body" rows="6" placeholder="내용을 입력하세요"></textarea>
+      </div>
+      <div class="actions">
+        <button class="btn primary" type="submit">보내기</button>
+      </div>
     </form>
-  </div>
+  </section>
 
 {% elif tab == 'sent' %}
-  <div class="card">
-    <div class="title">보낸편지함</div>
+  <!-- 보낸편지함 -->
+  <section class="card" aria-labelledby="sent-title">
+    <div class="card-title" id="sent-title">보낸편지함</div>
     <table class="tbl">
-      <thead><tr><th>제목</th><th>받는 사람</th><th>보낸 시각</th></tr></thead>
+      <thead>
+        <tr>
+          <th scope="col">제목</th>
+          <th scope="col">받는 사람</th>
+          <th scope="col">보낸 시각</th>
+        </tr>
+      </thead>
       <tbody>
         {% for m in sent %}
-        <tr>
-          <td><a href="{{ url_for('message_detail', msg_id=m.id) }}"><b>{{ m.title }}</b></a></td>
-          <td class="muted">{{ m.receiver.name }}</td>
-          <td>{{ m.created_at|dt_kr }}</td>
-        </tr>
+          <tr>
+            <td>
+              <a href="{{ url_for('message_detail', msg_id=m.id) }}"><b>{{ m.title }}</b></a>
+            </td>
+            <td class="muted">{{ m.receiver.name }}</td>
+            <td>{{ m.created_at|dt_kr }}</td>
+          </tr>
         {% else %}
-        <tr><td colspan="3" class="muted">보낸 메시지가 없습니다.</td></tr>
+          <tr>
+            <td colspan="3" class="muted">보낸 메시지가 없습니다.</td>
+          </tr>
         {% endfor %}
       </tbody>
     </table>
-  </div>
+  </section>
 
 {% else %}
-  <div class="card">
-    <div class="title">받은편지함</div>
+  <!-- 받은편지함 -->
+  <section class="card" aria-labelledby="inbox-title">
+    <div class="card-title" id="inbox-title">받은편지함</div>
     <table class="tbl">
-      <thead><tr><th>제목</th><th>보낸 사람</th><th>수신 시각</th><th>상태</th></tr></thead>
+      <thead>
+        <tr>
+          <th scope="col">제목</th>
+          <th scope="col">보낸 사람</th>
+          <th scope="col">수신 시각</th>
+          <th scope="col">상태</th>
+        </tr>
+      </thead>
       <tbody>
         {% for m in inbox %}
-        <tr>
-          <td>
-            <a href="{{ url_for('message_detail', msg_id=m.id) }}">
-              {% if not m.is_read %}<span class="dot"></span>{% endif %}
-              <b>{{ m.title }}</b>
-            </a>
-          </td>
-          <td class="muted">{{ m.sender.name }}</td>
-          <td>{{ m.created_at|dt_kr }}</td>
-          <td>
-            {% if m.is_read %}<span class="chip">읽음</span>{% else %}<span class="chip chip-ok">새 메시지</span>{% endif %}
-          </td>
-        </tr>
+          <tr>
+            <td>
+              <a href="{{ url_for('message_detail', msg_id=m.id) }}">
+                {% if not m.is_read %}<span class="dot" aria-hidden="true"></span>{% endif %}
+                <b>{{ m.title }}</b>
+              </a>
+            </td>
+            <td class="muted">{{ m.sender.name }}</td>
+            <td>{{ m.created_at|dt_kr }}</td>
+            <td>
+              {% if m.is_read %}
+                <span class="chip">읽음</span>
+              {% else %}
+                <span class="chip chip-ok">새 메시지</span>
+              {% endif %}
+            </td>
+          </tr>
         {% else %}
-        <tr><td colspan="4" class="muted">받은 메시지가 없습니다.</td></tr>
+          <tr>
+            <td colspan="4" class="muted">받은 메시지가 없습니다.</td>
+          </tr>
         {% endfor %}
       </tbody>
     </table>
-  </div>
+  </section>
 {% endif %}
+
 {% endblock %}

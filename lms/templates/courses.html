@@ -2,26 +2,52 @@
 {% block title %}강좌 목록 · LMS{% endblock %}
 
 {% block content %}
-<div class="banner">수강 중인 강좌를 관리하고 학습 진도를 확인하세요</div>
+  <h1 class="page-title">강좌 목록</h1>
+  <p class="subtitle">수강 중인 강좌를 관리하고 학습 진도를 확인하세요.</p>
 
-<div class="grid grid-3">
-  {% for c in courses %}
-  <section class="card course-card">
-    <div class="card-header">
-      <div class="title">{{ c.course.title }}</div>
-      <div class="semester">2024-1</div>
-    </div>
-    <div class="meta">교수명: {{ c.course.id }}번 담당 교수</div>
-    <div class="meta small">과제 {{ c.submitted }}/{{ c.total }} 완료</div>
-    <div class="bar"><span style="width: '{{ c.progress }}%'"></span></div>
-    <div class="pct">{{ c.progress }}%</div>
-    <div class="actions">
-      <a class="btn-primary" href="/course/{{ c.course.id }}">강좌 보기</a>
-      <button class="btn-icon">📅</button>
-    </div>
-  </section>
-  {% else %}
-  <div class="muted">수강 중인 강좌가 없습니다.</div>
-  {% endfor %}
-</div>
+  <div class="grid grid-3">
+    {% if courses and courses|length %}
+      {% for c in courses %}
+        <section class="card course-card" aria-labelledby="course-{{ c.course.id }}-title">
+          <div class="card-header">
+            <div class="title" id="course-{{ c.course.id }}-title" title="{{ c.course.title }}">
+              {{ c.course.title }}
+            </div>
+
+            {# 학기/기간이 있으면 표시, 없으면 기본 라벨 #}
+            <div class="semester">
+              {% if c.course.start_date and c.course.end_date %}
+                {{ c.course.start_date.strftime('%Y.%m.%d') }} ~ {{ c.course.end_date.strftime('%Y.%m.%d') }}
+              {% else %}
+                진행 중
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="meta">담당: {{ c.course.id }}번 교수</div>
+          <div class="meta small">과제 {{ c.submitted }}/{{ c.total }} 완료</div>
+
+          <div class="bar"
+               role="progressbar"
+               aria-valuenow="{{ c.progress }}"
+               aria-valuemin="0"
+               aria-valuemax="100"
+               aria-label="진도율 {{ c.progress }}%">
+            <span style="width: '{{ c.progress }}%;'"></span>
+          </div>
+          <div class="pct">{{ c.progress }}%</div>
+
+          <div class="actions">
+            <a class="btn-primary" href="{{ url_for('course_detail', course_id=c.course.id) }}">강좌 보기</a>
+            <a class="btn-icon" title="일정에서 보기"
+               href="{{ url_for('schedule_page', q=c.course.title) }}">📅</a>
+          </div>
+        </section>
+      {% endfor %}
+    {% else %}
+      <section class="card">
+        <div class="muted">수강 중인 강좌가 없습니다.</div>
+      </section>
+    {% endif %}
+  </div>
 {% endblock %}

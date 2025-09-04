@@ -1,21 +1,26 @@
 {% extends "base.html" %}
-{% block title %}일정{% endblock %}
-{% block header %}일정{% endblock %}
-{% block content %}
+{% block title %}일정 · LMS{% endblock %}
 
-<div class="tabs">
-  <form method="get" action="{{ url_for('schedule_page') }}" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-    <span class="muted">기간:</span>
-    <input type="date" name="start" value="{{ start.strftime('%Y-%m-%d') }}" />
-    <span>~</span>
-    <input type="date" name="end" value="{{ end.strftime('%Y-%m-%d') }}" />
-    <label style="display:flex; align-items:center; gap:6px;">
-      <input type="checkbox" name="assign" value="1" {% if include_assign %}checked{% endif %}> 과제 마감 포함
+{% block content %}
+<h1 class="page-title">일정</h1>
+<p class="subtitle">기간·검색·종류를 필터링하고 새 일정을 추가하세요.</p>
+
+<section class="card">
+  <form method="get" action="{{ url_for('schedule_page') }}" class="toolbar" aria-label="일정 필터">
+    <div class="muted">기간</div>
+    <input class="select" type="date" name="start" value="{{ start.strftime('%Y-%m-%d') }}">
+    <div>~</div>
+    <input class="select" type="date" name="end" value="{{ end.strftime('%Y-%m-%d') }}">
+
+    <label class="select" style="display:flex; gap:6px; align-items:center; background:#fff;">
+      <input type="checkbox" name="assign" value="1" {% if include_assign %}checked{% endif %}>
+      과제 마감 포함
     </label>
-    <input name="q" value="{{ q }}" placeholder="제목/장소/설명 검색" style="padding:6px 10px; border:1px solid var(--border); border-radius:8px;">
-    <button class="btn">필터</button>
+
+    <input class="search" name="q" value="{{ q }}" placeholder="제목/장소/설명 검색">
+    <button class="btn" type="submit">필터</button>
   </form>
-</div>
+</section>
 
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
@@ -25,17 +30,30 @@
   {% endif %}
 {% endwith %}
 
-<div class="grid2">
-  <div class="card">
-    <div class="title">새 일정 추가</div>
+<div class="grid grid-2">
+  <!-- 새 일정 -->
+  <section class="card" aria-labelledby="new-event-title">
+    <div class="card-title" id="new-event-title">새 일정 추가</div>
     <form method="post" action="{{ url_for('schedule_new') }}">
-      <div class="row"><label>제목</label><input name="title" required placeholder="예: 팀 미팅"></div>
-      <div class="row"><label>시작</label><input type="datetime-local" name="start_at" required></div>
-      <div class="row"><label>종료</label><input type="datetime-local" name="end_at"></div>
-      <div class="row"><label>장소</label><input name="location" placeholder="예: H-301"></div>
       <div class="row">
-        <label>종류</label>
-        <select name="kind">
+        <label for="ev-title">제목</label>
+        <input id="ev-title" name="title" required placeholder="예: 팀 미팅">
+      </div>
+      <div class="row">
+        <label for="ev-start">시작</label>
+        <input id="ev-start" type="datetime-local" name="start_at" required>
+      </div>
+      <div class="row">
+        <label for="ev-end">종료</label>
+        <input id="ev-end" type="datetime-local" name="end_at">
+      </div>
+      <div class="row">
+        <label for="ev-loc">장소</label>
+        <input id="ev-loc" name="location" placeholder="예: H-301">
+      </div>
+      <div class="row">
+        <label for="ev-kind">종류</label>
+        <select id="ev-kind" name="kind">
           <option value="event">일반</option>
           <option value="mentoring">멘토링</option>
           <option value="meeting">미팅</option>
@@ -43,57 +61,74 @@
         </select>
       </div>
       <div class="row">
-        <label>강좌(선택)</label>
-        <select name="course_id">
+        <label for="ev-course">강좌(선택)</label>
+        <select id="ev-course" name="course_id">
           <option value="">연결 안 함</option>
-          {% for c in courses %}<option value="{{ c.id }}">{{ c.title }}</option>{% endfor %}
+          {% for c in courses %}
+            <option value="{{ c.id }}">{{ c.title }}</option>
+          {% endfor %}
         </select>
       </div>
-      <div class="row"><label>설명</label><textarea name="description" rows="3"></textarea></div>
-      <div class="actions"><button class="btn primary">등록</button></div>
+      <div class="row">
+        <label for="ev-desc">설명</label>
+        <textarea id="ev-desc" name="description" rows="3"></textarea>
+      </div>
+      <div class="actions">
+        <button class="btn primary" type="submit">등록</button>
+      </div>
     </form>
-  </div>
+  </section>
 
-  <div class="card">
-    <div class="title">일정 목록 ({{ start|ymd_kr }} ~ {{ end|ymd_kr }})</div>
+  <!-- 일정 목록 -->
+  <section class="card" aria-labelledby="list-title">
+    <div class="card-title" id="list-title">일정 목록 ({{ start|ymd_kr }} ~ {{ end|ymd_kr }})</div>
     <table class="tbl">
-      <thead><tr><th>일시</th><th>제목</th><th>종류</th><th>강좌</th><th>장소</th><th></th></tr></thead>
+      <thead>
+        <tr>
+          <th scope="col">일시</th>
+          <th scope="col">제목</th>
+          <th scope="col">종류</th>
+          <th scope="col">강좌</th>
+          <th scope="col">장소</th>
+          <th scope="col" class="right">관리</th>
+        </tr>
+      </thead>
       <tbody>
         {% for it in items %}
-        <tr>
-          <td>
-            {% if it.start %}{{ it.start|dt_kr }}{% endif %}
-            {% if it.end %} ~ {{ it.end|dt_kr }}{% endif %}
-          </td>
-          <td><b>{{ it.title }}</b></td>
-          <td>
-            {% if it.kind == 'assignment' %}
-              <span class="chip chip-ok">과제 마감</span>
-            {% elif it.kind == 'mentoring' %}
-              <span class="chip">멘토링</span>
-            {% elif it.kind == 'exam' %}
-              <span class="chip">시험</span>
-            {% elif it.kind == 'meeting' %}
-              <span class="chip">미팅</span>
-            {% else %}
-              <span class="chip">일정</span>
-            {% endif %}
-          </td>
-          <td class="muted">{{ it.course or '-' }}</td>
-          <td class="muted">{{ it.location or '-' }}</td>
-          <td class="right">
-            {% if it.is_event and it.id %}
-            <form method="post" action="{{ url_for('schedule_delete', event_id=it.id) }}">
-              <button class="btn">삭제</button>
-            </form>
-            {% endif %}
-          </td>
-        </tr>
+          <tr>
+            <td>
+              {% if it.start %}{{ it.start|dt_kr }}{% endif %}
+              {% if it.end %} ~ {{ it.end|dt_kr }}{% endif %}
+            </td>
+            <td><b>{{ it.title }}</b></td>
+            <td>
+              {% if it.kind == 'assignment' %}
+                <span class="chip chip-ok">과제 마감</span>
+              {% elif it.kind == 'mentoring' %}
+                <span class="chip">멘토링</span>
+              {% elif it.kind == 'exam' %}
+                <span class="chip">시험</span>
+              {% elif it.kind == 'meeting' %}
+                <span class="chip">미팅</span>
+              {% else %}
+                <span class="chip">일정</span>
+              {% endif %}
+            </td>
+            <td class="muted">{{ it.course or '-' }}</td>
+            <td class="muted">{{ it.location or '-' }}</td>
+            <td class="right">
+              {% if it.is_event and it.id %}
+                <form method="post" action="{{ url_for('schedule_delete', event_id=it.id) }}">
+                  <button class="btn" type="submit">삭제</button>
+                </form>
+              {% endif %}
+            </td>
+          </tr>
         {% else %}
           <tr><td colspan="6" class="muted">표시할 일정이 없습니다.</td></tr>
         {% endfor %}
       </tbody>
     </table>
-  </div>
+  </section>
 </div>
 {% endblock %}

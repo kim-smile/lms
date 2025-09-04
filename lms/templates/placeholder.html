@@ -1,9 +1,12 @@
 {% extends 'base.html' %}
 {% block title %}{{ title }} · LMS{% endblock %}
+
 {% block content %}
-  <div class="banner">{{ title }}</div>
-  <section class="card">
-    <div class="card-title">{{ title }}</div>
-    <p class="muted">{{ desc }}</p>
-  </section>
+<h1 class="page-title">{{ title }}</h1>
+{% if desc %}<p class="subtitle">{{ desc }}</p>{% endif %}
+
+<section class="card">
+  <div class="card-title">{{ title }}</div>
+  {% if desc %}<p class="muted">{{ desc }}</p>{% else %}<p class="muted">콘텐츠가 준비 중입니다.</p>{% endif %}
+</section>
 {% endblock %}
