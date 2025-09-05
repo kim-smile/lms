@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LMS 로그인</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="auth-wrap">
+    <div class="auth-card">
+
+      <!-- Header -->
+      <div class="auth-header">
+        <div class="demo-badge">LMS Demo</div>
+        <h1 class="auth-title">로그인</h1>
+        <p class="auth-sub">관리자 · 교수 · 학생 계정으로 로그인하세요.</p>
+      </div>
+
+      <!-- Body -->
+      <div class="auth-body">
+        <!-- Flash messages -->
+        {% with msgs = get_flashed_messages(with_categories=true) %}
+          {% if msgs %}
+            {% for cat, msg in msgs %}
+              <div class="flash {{ cat }}">{{ msg }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- Login form -->
+        <form class="form" method="post"
+              action="{{ url_for('auth.login_post', next=request.args.get('next')) }}">
+          <div class="field">
+            <label for="email">이메일</label>
+            <input id="email" name="email" type="email" class="input"
+                   placeholder="you@example.com" required autocomplete="username" />
+          </div>
+
+          <div class="field">
+            <label for="password">비밀번호</label>
+            <input id="password" name="password" type="password" class="input"
+                   placeholder="••••••••" required autocomplete="current-password" />
+            <div class="help">데모: 아래 버튼으로 자동 입력 가능</div>
+          </div>
+
+          <div class="row-inline">
+            <label class="checkbox">
+              <input type="checkbox" name="remember" value="1" />
+              로그인 유지
+            </label>
+            <a class="auth-link" href="{{ url_for('auth.init_demo') }}">데모 계정 준비</a>
+          </div>
+
+          <div class="auth-actions">
+            <button type="submit" class="btn btn-primary">로그인</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Footer (demo quick-fill) -->
+      <div class="auth-footer">
+        <div class="center small muted" style="margin-bottom:8px;">빠른 데모 로그인</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center;">
+          <button class="btn" data-demo="student">학생</button>
+          <button class="btn" data-demo="prof">교수</button>
+          <button class="btn" data-demo="admin">관리자</button>
+        </div>
+        <p class="small muted center" style="margin-top:8px;">
+          학생: <b>student@example.com / student123</b> ·
+          교수: <b>prof@example.com / prof123</b> ·
+          관리자: <b>admin@example.com / admin123</b>
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // 데모 계정 자동 입력
+    (function () {
+      const btns = document.querySelectorAll('[data-demo]');
+      const $email = document.getElementById('email');
+      const $pw = document.getElementById('password');
+      const map = {
+        student: { email: 'student@example.com', pass: 'student123' },
+        prof:    { email: 'prof@example.com',    pass: 'prof123' },
+        admin:   { email: 'admin@example.com',   pass: 'admin123' },
+      };
+      btns.forEach(b => {
+        b.addEventListener('click', () => {
+          const key = b.getAttribute('data-demo');
+          const cred = map[key];
+          if (!cred) return;
+          $email.value = cred.email;
+          $pw.value = cred.pass;
+          $email.focus();
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

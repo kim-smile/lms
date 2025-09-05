@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}메시지 보기 · LMS{% endblock %}
+
+{% block content %}
+<h1 class="page-title">메시지 보기</h1>
+<p class="subtitle">메시지 내용을 확인하고 바로 답장할 수 있어요.</p>
+
+<div class="grid grid-2">
+  <!-- 본문 -->
+  <section class="card" aria-labelledby="msg-title">
+    <div class="card-title" id="msg-title">{{ m.title }}</div>
+    <div class="kv">From: <b>{{ m.sender.name }}</b> &nbsp; → &nbsp; To: <b>{{ m.receiver.name }}</b></div>
+    <div class="kv">
+      보낸 시각: {{ m.created_at|dt_kr }}
+      {% if m.read_at %} · 읽은 시각: {{ m.read_at|dt_kr }}{% endif %}
+    </div>
+    <hr>
+    <div style="white-space:pre-wrap; line-height:1.6;">{{ m.body or '내용 없음' }}</div>
+  </section>
+
+  <!-- 답장 -->
+  <section class="card" aria-labelledby="reply-title">
+    <div class="card-title" id="reply-title">답장</div>
+    <form method="post" action="{{ url_for('messages.reply', msg_id=m.id) }}">
+      <div class="row">
+        <label for="reply-title-input">제목</label>
+        <input id="reply-title-input" name="title" value="Re: {{ m.title }}">
+      </div>
+      <div class="row">
+        <label for="reply-body">내용</label>
+        <textarea id="reply-body" name="body" rows="6" placeholder="답장 내용을 입력하세요"></textarea>
+      </div>
+      <div class="actions">
+        <button class="btn primary" type="submit">보내기</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}
